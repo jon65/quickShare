@@ -31,6 +31,7 @@ services:
   nginx:
     build: 
       context: nginx
+      dockerfile: dockerfile
     container_name: nginx
     restart: always
     tty: true
@@ -61,7 +62,6 @@ services:
 networks: 
   node-network:
     driver: bridge
-
 
 volumes:
   mysql_data: #creates a named volume
