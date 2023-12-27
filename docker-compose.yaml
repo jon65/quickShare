@@ -2,7 +2,9 @@ version: "3.8"
 #https://medium.com/@antonio.maccarini/dockerize-a-react-application-with-node-js-postgres-and-nginx-124c204029d4
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: dockerfile
     container_name: backend_container
     expose:
       - '8080'  # expose port 8080 to private network without mapping to host port
@@ -13,7 +15,9 @@ services:
       - node-network
       
   frontend:
-    build: ./my-app
+    build: 
+      context: ./my-app
+      dockerfile: dockerfile
     container_name: frontend_container
     expose:
       - '3000'  # container: host
@@ -39,7 +43,9 @@ services:
        - backend
 
   db:
-    build: ./db
+    build: 
+      context: ./db
+      dockerfile: dockerfile
     image: mysql:latest
     container_name: mysql_container
     environment:
