@@ -1,0 +1,61 @@
+version: "3.8"
+#https://medium.com/@antonio.maccarini/dockerize-a-react-application-with-node-js-postgres-and-nginx-124c204029d4
+services:
+  backend:
+    build: ./backend
+    container_name: backend_container
+    expose:
+      - '8080'  # expose port 8080 to private network without mapping to host port
+    volumes:
+      - ./backend:/index.js
+      - /backend/node_modules
+    networks: 
+      - node-network
+      
+  frontend:
+    build: ./my-app
+    container_name: frontend_container
+    expose:
+      - '3000'  # container: host
+    volumes:
+      - /my-app/node_modules
+    stdin_open: true  # these 2 open an interactive shell for react container --> need to look into y its needed
+    tty: true
+    networks: 
+      - node-network
+
+  nginx:
+    build: 
+      context: nginx
+    container_name: nginx
+    restart: always
+    tty: true
+    networks: 
+      - node-network
+    ports: 
+      - "8000:80" #expose only port 8000. pysical port 8000 is map to private network port 80
+    depends_on:
+       - frontend
+       - backend
+
+  db:
+    build: ./db
+    image: mysql:latest
+    container_name: mysql_container
+    environment:
+      MYSQL_ROOT_PASSWORD: example_password
+      MYSQL_DATABASE: example_db
+      MYSQL_USER: example_user
+      MYSQL_PASSWORD: example_password
+    volumes:
+      - mysql_data:/var/lib/mysql #persist all data in name volume under new dir var/lib/mysql
+    networks:
+      - node-network
+
+networks: 
+  node-network:
+    driver: bridge
+
+
+volumes:
+  mysql_data: #creates a named volume
