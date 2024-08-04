@@ -1,21 +1,81 @@
 const express = require('express');
 const cors = require('cors');
-// Load the SDK for JavaScript
-var AWS = require('aws-sdk');
-// Set the Region 
-AWS.config.update({region: 'ap-southeast-1'});
+const multer = require('multer');
+const fs = require('fs');
+const { S3Client, ListBucketsCommand, PutObjectCommand } = require("@aws-sdk/client-s3");
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
-//i want to upload files to the cloud db
+const upload = multer({ dest: 'uploads/' });
 
-app.get('/', uploadFiles);
+const s3Client = new S3Client({ region: 'ap-southeast-1' });
 
-// listen to port
-app.listen(process.env.PORT || 8080, () => {
-    console.log(`listening to port ${process.env.PORT || 8080}`);
+app.get('/', async (req, res) => {
+  try {
+    const data = await s3Client.send(new ListBucketsCommand({}));
+    console.log('Success', data.Buckets);
+    res.send({
+      file: data.Buckets,
+    });
+  } catch (err) {
+    console.log('Error', err);
+    res.status(500).send({
+      error: 'Failed to list buckets',
+    });
+  }
 });
-3
-//functions
-const uploadFiles = async () => { };
+/**
+ * Upload to s3 with metadata
+ * 
+ * */
+app.post('/upload', upload.single('file'), async (req, res) => {
+  const file = req.file;
+
+  console.log('Uploaded file:', file); // Debugging log
+
+  if (!file) {
+    return res.status(400).send({
+      error: 'No file uploaded',
+    });
+  }
+
+  // Ensure file.path is a string
+  if (typeof file.path !== 'string') {
+    return res.status(400).send({
+      error: 'Invalid file path',
+    });
+  }
+
+  const fileStream = fs.createReadStream(file.path);
+
+  const param = {
+    Bucket: 'quickshare-bucket1',
+    Body: fileStream,
+    Key: file.originalname,
+  };
+
+  try {
+    const cmd = new PutObjectCommand(param);
+    const data = await s3Client.send(cmd);
+
+    // Delete temp file on multer
+    fs.unlinkSync(file.path);
+
+    res.status(200).send({
+      file: data,
+    });
+  } catch (e) {
+    console.error('Error uploading file to S3:', e);
+    res.status(500).send({
+      error: 'Internal server error',
+    });
+  }
+});
+
+
+const port = process.env.PORT || 8080;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
