@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
-const { S3Client, PutObjectCommand,DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } = require("@aws-sdk/client-s3");
 const crypto = require('crypto');
 
 const app = express();
@@ -12,7 +12,6 @@ app.use(cors());
 const upload = multer({ dest: 'uploads/' });
 
 const s3Client = new S3Client({ region: 'ap-southeast-1' });
-
 
 const streamToBuffer = (stream) => {
   return new Promise((resolve, reject) => {
@@ -39,27 +38,27 @@ const hashBuffer = (buffer) => {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 };
 
+const generateCodes = (num) => {
+  return Array.from({ length: num }, () => crypto.randomBytes(16).toString('hex'));
+};
+
 /**
- * Upload to s3 with metadata
- * 
- * */
+ * Upload to S3 with metadata and multiple one-time codes
+ */
 app.post('/upload', upload.single('file'), async (req, res) => {
-    const file = req.file;
-    const { filename } = req.body; // Get the filename from the request body
+  const file = req.file;
+  const { filename, numCodes } = req.body; // Get the filename and number of codes from the request body
 
-    console.log('Uploaded file:', file); // Debugging log
-    
-      if (!file) {
-        return res.status(400).send({
-          error: 'No file uploaded',
-        });
-      }
-    
+  if (!file) {
+    return res.status(400).send({
+      error: 'No file uploaded',
+    });
+  }
+
   const fileBuffer = fs.readFileSync(file.path);
-  const oneTimeCode = crypto.randomBytes(16).toString('hex'); // Generate a one-time code
-  const encryptedBuffer = encrypt(fileBuffer, oneTimeCode); // Encrypt the file content
+  const oneTimeCodes = generateCodes(parseInt(numCodes, 10)); // Generate the specified number of codes
+  const encryptedBuffer = encrypt(fileBuffer, oneTimeCodes[0]); // Encrypt the file content with the first code
   const fileHash = hashBuffer(fileBuffer); // Generate hash of the original file
-
 
   const param = {
     Bucket: 'quickshare-bucket1',
@@ -67,8 +66,9 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     Key: filename,
     ContentType: file.mimetype, // Store the MIME type of the file
     Metadata: {
-      'one-time-code': oneTimeCode, // Store one-time code in metadata
+      'one-time-codes': oneTimeCodes.join(','), // Store one-time codes in metadata
       'file-hash': fileHash, // Store file hash in metadata
+      'codes-remaining': oneTimeCodes.length // Store the number of codes remaining
     },
   };
 
@@ -81,7 +81,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
     res.status(200).send({
       key: filename,
-      code: oneTimeCode, // Return the one-time code to the user
+      code: oneTimeCodes[0], // Return the first code to the user
     });
   } catch (e) {
     console.error('Error uploading file to S3:', e);
@@ -93,7 +93,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
 // Retrieve file by one-time code
 app.get('/file', async (req, res) => {
- const { key, code } = req.body;
+  const { key, code } = req.body;
 
   if (!key || !code) {
     return res.status(400).send({
@@ -106,21 +106,49 @@ app.get('/file', async (req, res) => {
     Key: key,
   };
 
-  // List all objects to find the matching one-time code in metadata
   try {
-     const headData = await s3Client.send(new HeadObjectCommand(headParams));
+    const headData = await s3Client.send(new HeadObjectCommand(headParams));
 
-    if (headData.Metadata['one-time-code'] !== code) {
+    const oneTimeCodes = headData.Metadata['one-time-codes'].split(',');
+    const codesRemaining = parseInt(headData.Metadata['codes-remaining'], 10);
+
+    if (!oneTimeCodes.includes(code)) {
       return res.status(400).send({
         error: 'Invalid code',
       });
+    }
+
+    // Remove the used code from the list
+    const newOneTimeCodes = oneTimeCodes.filter(c => c !== code);
+    const newCodesRemaining = codesRemaining - 1;
+
+    // Update metadata
+    const updateParams = {
+      Bucket: 'quickshare-bucket1',
+      Key: key,
+      Metadata: {
+        ...headData.Metadata,
+        'one-time-codes': newOneTimeCodes.join(','),
+        'codes-remaining': newCodesRemaining,
+      },
+      MetadataDirective: 'REPLACE',
+    };
+
+    await s3Client.send(new CopyObjectCommand(updateParams)); // Use CopyObjectCommand to update metadata
+
+    if (newCodesRemaining <= 0) {
+      // Delete the file if no codes are left
+      const deleteParams = {
+        Bucket: 'quickshare-bucket1',
+        Key: key,
+      };
+      await s3Client.send(new DeleteObjectCommand(deleteParams));
     }
 
     const getObjectParams = {
       Bucket: 'quickshare-bucket1',
       Key: key,
     };
-
 
     const objectData = await s3Client.send(new GetObjectCommand(getObjectParams));
 
@@ -135,15 +163,6 @@ app.get('/file', async (req, res) => {
         error: 'File integrity check failed',
       });
     }
-      
-    
-    // Deleting the file from S3 after retrieval
-    const deleteParams = {
-      Bucket: 'quickshare-bucket1',
-      Key: key,
-    };
-
-    await s3Client.send(new DeleteObjectCommand(deleteParams));
 
     res.writeHead(200, {
       'Content-Type': headData.ContentType, // Ensure the content type is set correctly
@@ -158,8 +177,7 @@ app.get('/file', async (req, res) => {
   }
 });
 
-
 const port = process.env.PORT || 8080;
 app.listen(port, () => {
-  console.log(`Server is running on port: testing ${port}`);
+  console.log(`Server is running on port ${port}`);
 });
