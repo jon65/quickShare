@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
-const { S3Client, PutObjectCommand,DeleteObjectCommand, CopyObjectCommand, GetObjectCommand, HeadObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand,DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } = require("@aws-sdk/client-s3");
 const crypto = require('crypto');
 
 const app = express();
@@ -44,19 +44,22 @@ const hashBuffer = (buffer) => {
  * 
  * */
 app.post('/upload', upload.single('file'), async (req, res) => {
-  const file = req.file;
-  const { filename, numUses } = req.body; // Get the filename and number of uses from the request body
+    const file = req.file;
+    const { filename } = req.body; // Get the filename from the request body
 
-  if (!file) {
-    return res.status(400).send({
-      error: 'No file uploaded',
-    });
-  }
-
+    console.log('Uploaded file:', file); // Debugging log
+    
+      if (!file) {
+        return res.status(400).send({
+          error: 'No file uploaded',
+        });
+      }
+    
   const fileBuffer = fs.readFileSync(file.path);
   const oneTimeCode = crypto.randomBytes(16).toString('hex'); // Generate a one-time code
   const encryptedBuffer = encrypt(fileBuffer, oneTimeCode); // Encrypt the file content
   const fileHash = hashBuffer(fileBuffer); // Generate hash of the original file
+
 
   const param = {
     Bucket: 'quickshare-bucket1',
@@ -66,13 +69,12 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     Metadata: {
       'one-time-code': oneTimeCode, // Store one-time code in metadata
       'file-hash': fileHash, // Store file hash in metadata
-      'usage-count': numUses // Store the number of allowed uses
     },
   };
 
   try {
     const cmd = new PutObjectCommand(param);
-    await s3Client.send(cmd);
+    const data = await s3Client.send(cmd);
 
     // Delete temp file on multer
     fs.unlinkSync(file.path);
@@ -89,9 +91,9 @@ app.post('/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-
+// Retrieve file by one-time code
 app.get('/file', async (req, res) => {
-  const { key, code } = req.body;
+ const { key, code } = req.body;
 
   if (!key || !code) {
     return res.status(400).send({
@@ -104,50 +106,24 @@ app.get('/file', async (req, res) => {
     Key: key,
   };
 
+  // List all objects to find the matching one-time code in metadata
   try {
-    const headData = await s3Client.send(new HeadObjectCommand(headParams));
-    const storedCode = headData.Metadata['one-time-code'];
-    const usageCount = parseInt(headData.Metadata['usage-count'], 10);
+     const headData = await s3Client.send(new HeadObjectCommand(headParams));
 
-    if (storedCode !== code) {
+    if (headData.Metadata['one-time-code'] !== code) {
       return res.status(400).send({
         error: 'Invalid code',
       });
     }
 
-    if (usageCount <= 0) {
-      // Delete the file if no uses are left
-      const deleteParams = {
-        Bucket: 'quickshare-bucket1',
-        Key: key,
-      };
-      await s3Client.send(new DeleteObjectCommand(deleteParams));
-      return res.status(400).send({
-        error: 'Code has expired',
-      });
-    }
-
-    // Decrement the usage count and update metadata
-    const newUsageCount = usageCount - 1;
-    const updateParams = {
-      Bucket: 'quickshare-bucket1',
-      Key: key,
-      Metadata: {
-        ...headData.Metadata,
-        'usage-count': newUsageCount.toString(),
-      },
-      MetadataDirective: 'REPLACE',
-    };
-
-    await s3Client.send(new CopyObjectCommand(updateParams)); // Use CopyObjectCommand to update metadata
-
-    // Retrieve and decrypt the file
     const getObjectParams = {
       Bucket: 'quickshare-bucket1',
       Key: key,
     };
 
+
     const objectData = await s3Client.send(new GetObjectCommand(getObjectParams));
+
     const encryptedBuffer = await streamToBuffer(objectData.Body);
     const decryptedBuffer = decrypt(encryptedBuffer, code); // Decrypt the file content
     const retrievedFileHash = hashBuffer(decryptedBuffer); // Generate hash of the retrieved file
@@ -159,15 +135,15 @@ app.get('/file', async (req, res) => {
         error: 'File integrity check failed',
       });
     }
-
+      
+    
     // Deleting the file from S3 after retrieval
-    if (newUsageCount <= 0) {
-      const deleteParams = {
-        Bucket: 'quickshare-bucket1',
-        Key: key,
-      };
-      await s3Client.send(new DeleteObjectCommand(deleteParams));
-    }
+    const deleteParams = {
+      Bucket: 'quickshare-bucket1',
+      Key: key,
+    };
+
+    await s3Client.send(new DeleteObjectCommand(deleteParams));
 
     res.writeHead(200, {
       'Content-Type': headData.ContentType, // Ensure the content type is set correctly
