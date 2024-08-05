@@ -93,7 +93,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
 // Retrieve file by one-time code
 app.get('/file', async (req, res) => {
- const { key, code } = req.query;
+ const { key, code } = req.body;
 
   if (!key || !code) {
     return res.status(400).send({
