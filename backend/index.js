@@ -13,24 +13,20 @@ const upload = multer({ dest: 'uploads/' });
 
 const s3Client = new S3Client({ region: 'ap-southeast-1' });
 
-const streamToBuffer = (stream) => {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    stream.on('data', (chunk) => chunks.push(chunk));
-    stream.on('end', () => resolve(Buffer.concat(chunks)));
-    stream.on('error', reject);
-  });
-};
+const generateIV = () => crypto.randomBytes(16);
 
 const encrypt = (buffer, password) => {
-  const cipher = crypto.createCipher('aes-256-ctr', password);
-  const encrypted = Buffer.concat([cipher.update(buffer), cipher.final()]);
+  const iv = generateIV();
+  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(password, 'hex'), iv);
+  const encrypted = Buffer.concat([iv, cipher.update(buffer), cipher.final()]);
   return encrypted;
 };
 
 const decrypt = (buffer, password) => {
-  const decipher = crypto.createDecipher('aes-256-ctr', password);
-  const decrypted = Buffer.concat([decipher.update(buffer), decipher.final()]);
+  const iv = buffer.slice(0, 16);
+  const encryptedText = buffer.slice(16);
+  const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(password, 'hex'), iv);
+  const decrypted = Buffer.concat([decipher.update(encryptedText), decipher.final()]);
   return decrypted;
 };
 
@@ -39,66 +35,55 @@ const hashBuffer = (buffer) => {
 };
 
 const generateCodes = (num) => {
-  return Array.from({ length: num }, () => crypto.randomBytes(16).toString('hex'));
+  const codes = [];
+  for (let i = 0; i < num; i++) {
+    codes.push(crypto.randomBytes(16).toString('hex'));
+  }
+  return codes;
 };
 
-/**
- * Upload to S3 with metadata and multiple one-time codes
- */
 app.post('/upload', upload.single('file'), async (req, res) => {
   const file = req.file;
-  const { filename, numCodes } = req.body; // Get the filename and number of codes from the request body
+  const { filename, numCodes } = req.body;
 
   if (!file) {
-    return res.status(400).send({
-      error: 'No file uploaded',
-    });
+    return res.status(400).send({ error: 'No file uploaded' });
   }
 
   const fileBuffer = fs.readFileSync(file.path);
-  const oneTimeCodes = generateCodes(parseInt(numCodes, 10)); // Generate the specified number of codes
-  const encryptedBuffer = encrypt(fileBuffer, oneTimeCodes[0]); // Encrypt the file content with the first code
-  const fileHash = hashBuffer(fileBuffer); // Generate hash of the original file
+  const oneTimeCodes = generateCodes(parseInt(numCodes, 10));
+  const encryptionKey = oneTimeCodes[0];
+  const encryptedBuffer = encrypt(fileBuffer, encryptionKey);
+  const fileHash = hashBuffer(fileBuffer);
 
   const param = {
     Bucket: 'quickshare-bucket1',
     Body: encryptedBuffer,
     Key: filename,
-    ContentType: file.mimetype, // Store the MIME type of the file
+    ContentType: file.mimetype,
     Metadata: {
-      'one-time-codes': oneTimeCodes.join(','), // Store one-time codes in metadata
-      'file-hash': fileHash, // Store file hash in metadata
-      'codes-remaining': oneTimeCodes.length // Store the number of codes remaining
+      'one-time-codes': oneTimeCodes.join(','),
+      'file-hash': fileHash,
+      'codes-remaining': oneTimeCodes.length
     },
   };
 
   try {
     const cmd = new PutObjectCommand(param);
-    const data = await s3Client.send(cmd);
-
-    // Delete temp file on multer
+    await s3Client.send(cmd);
     fs.unlinkSync(file.path);
-
-    res.status(200).send({
-      key: filename,
-      code: oneTimeCodes[0], // Return the first code to the user
-    });
+    res.status(200).send({ key: filename, code: encryptionKey });
   } catch (e) {
     console.error('Error uploading file to S3:', e);
-    res.status(500).send({
-      error: 'Internal server error',
-    });
+    res.status(500).send({ error: 'Internal server error' });
   }
 });
 
-// Retrieve file by one-time code
 app.get('/file', async (req, res) => {
-  const { key, code } = req.body;
+  const { key, code } = req.query;
 
   if (!key || !code) {
-    return res.status(400).send({
-      error: 'Missing key or code',
-    });
+    return res.status(400).send({ error: 'Missing key or code' });
   }
 
   const headParams = {
@@ -109,40 +94,8 @@ app.get('/file', async (req, res) => {
   try {
     const headData = await s3Client.send(new HeadObjectCommand(headParams));
 
-    const oneTimeCodes = headData.Metadata['one-time-codes'].split(',');
-    const codesRemaining = parseInt(headData.Metadata['codes-remaining'], 10);
-
-    if (!oneTimeCodes.includes(code)) {
-      return res.status(400).send({
-        error: 'Invalid code',
-      });
-    }
-
-    // Remove the used code from the list
-    const newOneTimeCodes = oneTimeCodes.filter(c => c !== code);
-    const newCodesRemaining = codesRemaining - 1;
-
-    // Update metadata
-    const updateParams = {
-      Bucket: 'quickshare-bucket1',
-      Key: key,
-      Metadata: {
-        ...headData.Metadata,
-        'one-time-codes': newOneTimeCodes.join(','),
-        'codes-remaining': newCodesRemaining,
-      },
-      MetadataDirective: 'REPLACE',
-    };
-
-    await s3Client.send(new CopyObjectCommand(updateParams)); // Use CopyObjectCommand to update metadata
-
-    if (newCodesRemaining <= 0) {
-      // Delete the file if no codes are left
-      const deleteParams = {
-        Bucket: 'quickshare-bucket1',
-        Key: key,
-      };
-      await s3Client.send(new DeleteObjectCommand(deleteParams));
+    if (!headData.Metadata['one-time-codes'].split(',').includes(code)) {
+      return res.status(400).send({ error: 'Invalid code' });
     }
 
     const getObjectParams = {
@@ -151,29 +104,30 @@ app.get('/file', async (req, res) => {
     };
 
     const objectData = await s3Client.send(new GetObjectCommand(getObjectParams));
-
     const encryptedBuffer = await streamToBuffer(objectData.Body);
-    const decryptedBuffer = decrypt(encryptedBuffer, code); // Decrypt the file content
-    const retrievedFileHash = hashBuffer(decryptedBuffer); // Generate hash of the retrieved file
-
-    // Compare the hash of the retrieved file with the stored hash
+    const decryptedBuffer = decrypt(encryptedBuffer, code);
+    const retrievedFileHash = hashBuffer(decryptedBuffer);
     const storedFileHash = headData.Metadata['file-hash'];
+
     if (retrievedFileHash !== storedFileHash) {
-      return res.status(400).send({
-        error: 'File integrity check failed',
-      });
+      return res.status(400).send({ error: 'File integrity check failed' });
     }
 
+    const deleteParams = {
+      Bucket: 'quickshare-bucket1',
+      Key: key,
+    };
+
+    await s3Client.send(new DeleteObjectCommand(deleteParams));
+
     res.writeHead(200, {
-      'Content-Type': headData.ContentType, // Ensure the content type is set correctly
+      'Content-Type': headData.ContentType,
       'Content-Disposition': `attachment; filename="${key}"`,
     });
     res.end(decryptedBuffer);
   } catch (e) {
     console.error('Error retrieving file from S3:', e);
-    res.status(500).send({
-      error: 'Internal server error',
-    });
+    res.status(500).send({ error: 'Internal server error' });
   }
 });
 
