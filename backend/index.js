@@ -135,6 +135,16 @@ app.get('/file', async (req, res) => {
         error: 'File integrity check failed',
       });
     }
+      
+    
+    // Deleting the file from S3 after retrieval
+    const deleteParams = {
+      Bucket: 'quickshare-bucket1',
+      Key: key,
+    };
+
+    await s3Client.send(new DeleteObjectCommand(deleteParams));
+
     res.writeHead(200, {
       'Content-Type': headData.ContentType, // Ensure the content type is set correctly
       'Content-Disposition': `attachment; filename="${key}"`,
