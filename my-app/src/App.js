@@ -2,12 +2,15 @@ import logo from './logo.svg';
 import './App.css';
 import { QuickShareContext, QuickShareProvider } from './context/quickShareContext';
 import { Dashboard } from './Dashboard';
-
+import Download from './Download';
+import Homepage from './Homepage';
 function App() {
   return (
     <QuickShareProvider>
       <div>
-      <Dashboard/>
+        <Homepage/>
+        {/* <Dashboard /> */}
+        {/* <Download/> */}
       </div>
     </QuickShareProvider>
   );

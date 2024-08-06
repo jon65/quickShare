@@ -18,6 +18,31 @@ const QuickShareProvider = ({ children }) => {
 
     const [state, dispatch] = useReducer(QuickShareReducer, initialState);
 
+    const downloadFile = useCallback(async (key, code) => { 
+        setIsLoading();
+
+        try {
+            const res = await axios.get(`${URL}/file`, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            setTimeout(() => { 
+                dispatch({ type: 'CANCEL_BOX', payload: false }) 
+            }, 3000);
+
+            if (res) { 
+                dispatch({
+                    type: 'DOWNLOAD',
+                    payload: res.data,
+                })
+            }
+
+        } catch (e) { 
+
+        }
+    });
+
     const uploadFile = useCallback(async (file, filename) => { 
         setIsLoading();
 
@@ -60,7 +85,8 @@ const QuickShareProvider = ({ children }) => {
         <QuickShareContext.Provider value={{
             ...state,
             dispatch,
-            uploadFile
+            uploadFile,
+            downloadFile
         }}>
             {children}
         </QuickShareContext.Provider>

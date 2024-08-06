@@ -5,6 +5,13 @@ const QuickShareReducer = (state, action) => {
         default:
             return state;
         
+        case 'DOWNLOAD':
+            return {
+                ...state,
+                isError: false,
+                isLoading: false,
+            }
+        
         case 'LOADING':
             return {
                 ...state,
