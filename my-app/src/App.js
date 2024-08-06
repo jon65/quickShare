@@ -8,9 +8,9 @@ function App() {
   return (
     <QuickShareProvider>
       <div>
-        <Homepage/>
-        {/* <Dashboard /> */}
-        {/* <Download/> */}
+        {/* <Homepage/> */}
+        <Dashboard />
+        <Download/>
       </div>
     </QuickShareProvider>
   );
