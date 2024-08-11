@@ -1,6 +1,12 @@
 name: CI
-run-name: ${{ github.actor }} is running this action
-on: [pull_request, push]
+run-name: ${{ github.actor }} is running CI for frontend  
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 defaults:
   run:
     working-directory: ./my-app
@@ -10,11 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      # - name: Install dependencies
-      #   run: npm install
+      - name: Install dependencies
+        run: npm install
 
       - name: Build
-        run: npm  build
+        run: npm run build
 
       # Change the working directory back to the root directory
       - name: Change directory to root
