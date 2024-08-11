@@ -3,10 +3,10 @@ run-name: ${{ github.actor }} is running CD for frontend
 on:
   push:
     branches:
-      - master
+      - prod
   pull_request:
     branches:
-      - master
+      - prod
 
 jobs:
   build:
