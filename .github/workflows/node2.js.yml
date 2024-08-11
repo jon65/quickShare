@@ -28,7 +28,7 @@ jobs:
             gh label create 'ci-failure' --description 'CI failure tracking' --color '#FF0000'
           fi
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.ISSUE_TOKEN }}
 
       - name: Create team sync issue
         if: failure()
@@ -42,7 +42,7 @@ jobs:
             gh issue pin "$new_issue_url"
           fi
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.ISSUE_TOKEN }}
           GH_REPO: ${{ github.repository }}
           TITLE: "CI Failure in ${{ github.workflow }} - ${{ github.run_id }}"
           ASSIGNEES: jon65 # Replace with your GitHub username or list of assignees
