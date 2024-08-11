@@ -45,8 +45,8 @@ jobs:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
           GH_REPO: ${{ github.repository }}
           TITLE: "CI Failure in ${{ github.workflow }} - ${{ github.run_id }}"
-          ASSIGNEES: your_username # Replace with your GitHub username or list of assignees
-          LABELS: "ci-failure"
+          ASSIGNEES: jon65 # Replace with your GitHub username or list of assignees
+          LABELS: bug
           BODY: |
             ### CI Failure Details
 
