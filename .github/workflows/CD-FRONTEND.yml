@@ -1,4 +1,4 @@
-name: Push to docker hub frontend image
+name: Push to Docker Hub Frontend Image
 run-name: ${{ github.actor }} is running CD for frontend
 on:
   push:
@@ -7,9 +7,7 @@ on:
   pull_request:
     branches:
       - master
-defaults:
-  run:
-    working-directory: ./my-app
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,18 +18,20 @@ jobs:
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
-      
+
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
         push: true
         tags: j0nno/qkshare-frontend:latest
+        context: ./my-app
+        file: ./my-app/Dockerfile
 
     env:
       DOCKER_CLI_EXPERIMENTAL: enabled
