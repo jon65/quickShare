@@ -14,20 +14,10 @@ jobs:
         run: npm install
       
       - name: Build 
-        run: npm build
+        run: npm run build
       # This step runs if any of the previous steps fail
       - name: Create GitHub Issue on Failure
-        if: failure()
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { context, github } = require('@actions/github');
-
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `CI Failed: ${context.workflow}`,
-              body: `An error occurred in the CI workflow.\n\nJob: ${context.job}\nRun: ${context.runNumber}\nURL: ${context.runUrl}`,
-              labels: ['bug', 'ci-failure'],
-            });
+        uses: dblock/create-a-github-issue@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ADJECTIVE: great
