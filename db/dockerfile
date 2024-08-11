@@ -1,3 +1,5 @@
+
+#no longer using mysql database inside ec2 instance -> migrated to s3 although s3 proved to be slower 
 FROM mysql:latest
 
 COPY init.sql /docker-entrypoint-initdb.d/
