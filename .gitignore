@@ -1,3 +1,10 @@
 /backend/node_modules
 /backend/package-lock.json
 /my-app/node_modules
+/my-app/variable.tf
+/my-app/.env
+/my-app/package-lock.json
+/my-app/build
+/my-app/terraform.tfstate
+/my-app/terraform.tfstate.backup
+/my-app/node_modules

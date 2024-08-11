@@ -4,13 +4,17 @@ import { QuickShareContext, QuickShareProvider } from './context/quickShareConte
 import { Dashboard } from './Dashboard';
 import Download from './Download';
 import Homepage from './Homepage';
+
+
+
+
 function App() {
   return (
     <QuickShareProvider>
       <div>
         <Homepage/>
-        {/* <Dashboard /> */}
-        {/* <Download/> */}
+        <Dashboard />
+        <Download/> 
       </div>
     </QuickShareProvider>
   );

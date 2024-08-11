@@ -3,13 +3,12 @@ import axios from 'axios';
 import QuickShareReducer from './quickShareReducer';
 
 const URL = 'http://54.169.27.251:8080';
-
 const QuickShareContext = createContext();
 
 const QuickShareProvider = ({ children }) => {
     const initialState = {
-        code: 'test',
-        key: 'dsasda',
+        code: '',
+        key: '',
         isLoading: false,
         isError: false,
         errMsg: '',
@@ -20,28 +19,33 @@ const QuickShareProvider = ({ children }) => {
 
     const downloadFile = useCallback(async (key, code) => { 
         setIsLoading();
-
-        try {
-            const res = await axios.get(`${URL}/file`, {
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            setTimeout(() => { 
-                dispatch({ type: 'CANCEL_BOX', payload: false }) 
-            }, 3000);
-
-            if (res) { 
-                dispatch({
-                    type: 'DOWNLOAD',
-                    payload: res.data,
-                })
+    try {
+        const res = await axios.get(`${URL}/file`, {
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            params: {
+                'key': key,
+                'code': code,
             }
+        });
+        
+        setTimeout(() => { 
+            dispatch({ type: 'CANCEL_BOX', payload: false }); 
+        }, 3000);
 
-        } catch (e) { 
-
+        if (res) { 
+            dispatch({
+                type: 'DOWNLOAD',
+                payload: res.data,
+            });
         }
-    });
+
+    } catch (e) { 
+        // Handle error here
+        console.error('Error fetching data:', e);
+    }
+    }, []);
 
     const uploadFile = useCallback(async (file, filename) => { 
         setIsLoading();

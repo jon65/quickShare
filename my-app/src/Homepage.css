@@ -1,0 +1,30 @@
+.page-container {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  background-color: #1b4965; /* Set the background color to light grey */
+  overflow: hidden;
+}
+
+.content-container {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  width: 80%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 20vh; /* Adjust the height as needed */
+  z-index: 0;
+}
+
+.wave-path {
+  fill: #bee9e8; /* Light grey color for the wave */
+}
