@@ -9,15 +9,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      
+
       - name: Install dependencies
         run: npm install
       
-      - name: Build 
+      - name: Build
         run: npm run build
-      # This step runs if any of the previous steps fail
+
+      # Change the working directory back to the root directory
       - name: Create GitHub Issue on Failure
+        if: failure()
+        run: cd $GITHUB_WORKSPACE
+      - name: Create GitHub Issue on Failure
+        if: failure()
         uses: dblock/create-a-github-issue@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ADJECTIVE: great
+        with:
+          title: "CI Failure in ${{ github.workflow }} - ${{ github.run_id }}"
+          body: |
+            An error occurred during the CI workflow.
+            - **Job**: ${{ github.job }}
+            - **Run Number**: ${{ github.run_number }}
+            - **Run ID**: ${{ github.run_id }}
+            - **Repository**: ${{ github.repository }}
+            - **Branch**: ${{ github.ref }}
+            - **Commit**: ${{ github.sha }}
+            - **Actor**: ${{ github.actor }}
+            - **Workflow**: ${{ github.workflow }}
+            - **URL**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
