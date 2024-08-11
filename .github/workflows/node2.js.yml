@@ -10,8 +10,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-      - name: Install dependencies
-        run: npm install
+      # - name: Install dependencies
+      #   run: npm install
       
       - name: Build 
         run: npm  build
@@ -36,7 +36,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           TITLE: "CI Failure in ${{ github.workflow }} - ${{ github.run_id }}"
-          ASSIGNEES: your_username # Replace with your GitHub username or list of assignees
+          ASSIGNEES: jon65 # Replace with your GitHub username or list of assignees
           LABELS: "ci-failure"
           BODY: |
             ### CI Failure Details
