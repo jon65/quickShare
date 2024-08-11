@@ -1,4 +1,4 @@
-import { createContext, useEffect, useCallback, useReducer } from 'react';
+import { createContext, useCallback, useReducer } from 'react';
 import axios from 'axios';
 import QuickShareReducer from './quickShareReducer';
 

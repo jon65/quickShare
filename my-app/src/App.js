@@ -1,6 +1,5 @@
-import logo from './logo.svg';
 import './App.css';
-import { QuickShareContext, QuickShareProvider } from './context/quickShareContext';
+import {  QuickShareProvider } from './context/quickShareContext';
 import { Dashboard } from './Dashboard';
 import Download from './Download';
 import Homepage from './Homepage';

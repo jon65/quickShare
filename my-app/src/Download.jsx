@@ -9,7 +9,7 @@ import React, { useContext, useState } from 'react';
 const Download = () => { 
     const [key1, setKey] = useState('');
     const [code1, setCode] = useState('');
-    const { isLoading, isError, errMsg, downloadFile } = useContext(QuickShareContext);
+    const { isError, errMsg, downloadFile } = useContext(QuickShareContext);
 
     const submitHandler = (e) => { 
         e.preventDefault();
