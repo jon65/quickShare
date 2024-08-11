@@ -1,5 +1,5 @@
 name: CI
-run-name: ${{github.actor}} is running this action
+run-name: ${{ github.actor }} is running this action
 on: [pull_request, push]
 defaults:
   run:
@@ -9,17 +9,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      
+
       # - name: Install dependencies
       #   run: npm install
-      
-      - name: Build 
+
+      - name: Build
         run: npm  build
-      
+
       # Change the working directory back to the root directory
       - name: Change directory to root
         if: failure()
         run: cd $GITHUB_WORKSPACE
+
+      - name: Ensure 'ci-failure' label exists
+        if: failure()
+        run: |
+          if ! gh label list | grep -q 'ci-failure'; then
+            gh label create 'ci-failure' --description 'CI failure tracking' --color '#FF0000'
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
 
       - name: Create team sync issue
         if: failure()
@@ -33,11 +42,11 @@ jobs:
             gh issue pin "$new_issue_url"
           fi
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
           GH_REPO: ${{ github.repository }}
           TITLE: "CI Failure in ${{ github.workflow }} - ${{ github.run_id }}"
-          ASSIGNEES: jon65 # Replace with your GitHub username or list of assignees
-          LABELS: bug
+          ASSIGNEES: your_username # Replace with your GitHub username or list of assignees
+          LABELS: "ci-failure"
           BODY: |
             ### CI Failure Details
 
