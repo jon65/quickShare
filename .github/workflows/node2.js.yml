@@ -9,28 +9,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
+      
       - name: Install dependencies
         run: npm install
       
-      - name: Build
-        run: npm build
+      - name: Build 
+        run: npm run build
 
+      # Change the working directory back to the root directory
+      - name: Change directory to root
+        if: failure()
+        run: cd $GITHUB_WORKSPACE
+
+      # Create a temporary issue template file
+      - name: Create temporary issue template file
+        if: failure()
+        run: |
+          echo "title: CI Failure in ${{ github.workflow }} - ${{ github.run_id }}" > .github/ISSUE_TEMPLATE.md
+          echo "An error occurred during the CI workflow." >> .github/ISSUE_TEMPLATE.md
+          echo "- **Job**: ${{ github.job }}" >> .github/ISSUE_TEMPLATE.md
+          echo "- **Run Number**: ${{ github.run_number }}" >> .github/ISSUE_TEMPLATE.md
+          echo "- **Run ID**: ${{ github.run_id }}" >> .github/ISSUE_TEMPLATE.md
+          echo "- **Repository**: ${{ github.repository }}" >> .github/ISSUE_TEMPLATE.md
+          echo "- **Branch**: ${{ github.ref }}" >> .github/ISSUE_TEMPLATE.md
+          echo "- **Commit**: ${{ github.sha }}" >> .github/ISSUE_TEMPLATE.md
+          echo "- **Actor**: ${{ github.actor }}" >> .github/ISSUE_TEMPLATE.md
+          echo "- **Workflow**: ${{ github.workflow }}" >> .github/ISSUE_TEMPLATE.md
+          echo "- **URL**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> .github/ISSUE_TEMPLATE.md
+
+      # Create GitHub Issue on Failure
       - name: Create GitHub Issue on Failure
         if: failure()
         uses: dblock/create-a-github-issue@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          title: "CI Failure in ${{ github.workflow }} - ${{ github.run_id }}"
-          body: |
-            An error occurred during the CI workflow.
-            - **Job**: ${{ github.job }}
-            - **Run Number**: ${{ github.run_number }}
-            - **Run ID**: ${{ github.run_id }}
-            - **Repository**: ${{ github.repository }}
-            - **Branch**: ${{ github.ref }}
-            - **Commit**: ${{ github.sha }}
-            - **Actor**: ${{ github.actor }}
-            - **Workflow**: ${{ github.workflow }}
-            - **URL**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          filename: .github/ISSUE_TEMPLATE.md
