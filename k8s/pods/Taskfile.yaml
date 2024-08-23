@@ -1,0 +1,20 @@
+version: "3"
+
+env:
+  BORDER: double
+  BORDER_FOREGROUND: "212"
+  PADDING: "1 1"
+  MARGIN: "1 1"
+  NAMESPACE: 04--pod
+
+tasks:
+  01-create-namespace:
+    desc: "Create a namespace for these examples and set as default"
+    cmds:
+      - kubectl apply -f Namespace.yaml
+      - kubens ${NAMESPACE}
+      
+  03-minimal-apply:
+    desc: "Apply the minimal pod configuration"
+    cmds:
+      - kubectl apply -n ${NAMESPACE} -f Pod.nginx-minimal.yaml
