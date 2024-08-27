@@ -1,3 +1,4 @@
+#chain guard provide secure images
 apiVersion: v1
 kind: Pod
 metadata:
@@ -15,4 +16,3 @@ spec:
           cpu: "500m"
 
 
-          
