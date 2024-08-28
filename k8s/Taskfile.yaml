@@ -1,0 +1,54 @@
+version: '3'
+
+tasks:
+  apply-namespace:
+    desc: Apply the namespace configuration
+    cmds:
+      - kubectl apply -f Namespace.yaml
+
+  apply-deployment:
+    desc: Apply the deployment configuration
+    cmds:
+      - kubectl apply -f depl.yaml
+
+  apply-service:
+    desc: Apply the service configuration
+    cmds:
+      - kubectl apply -f service.yaml
+
+  apply-ingres:
+    desc: apply ingress 
+    cmds:
+      - kubectl apply -f ingres.yaml
+
+  apply-all:
+    desc: Apply all Kubernetes resources in the correct order
+    cmds:
+      - kubectl apply -f Namespace.yaml
+      - kubectl apply -f depl.yaml
+      - kubectl apply -f service.yaml
+
+  delete-resources:
+    desc: Delete the deployment, service, and namespace in the correct order
+    cmds:
+      - kubectl delete -f service.yaml
+      - kubectl delete -f depl.yaml
+      - kubectl delete -f Namespace.yaml
+  
+  shutdown-minikube:
+    desc: Stop Minikube and preserve Kubernetes resources
+    cmds:
+      - minikube stop
+  
+  start-minikube:
+    desc: start minikube (using docker currently) idk if theres any issues with docker destop driver make sure docker desktop is running
+    cmds:
+      -  minikube start 
+  
+  # minikube-driver:
+  #   desc: check that minikube is running on colina and not docker
+  #   cmds:
+  #     - minikube config get driver
+  
+
+    

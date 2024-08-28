@@ -1,22 +1,59 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: posts-app-deployment
-  namespace: 04--pod
-  labels:
-    app: posts-app
+  name: qkshare
+  namespace: qkshare #namespace - resources 
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
-      app: posts-app
+      app: qkshare
   template:
     metadata:
       labels:
-        app: posts-app
+        app: qkshare
     spec:
       containers:
-      - name: posts-app-container
-        image: image-name
-        ports:
-        - containerPort: 80
+        - name: qkshare
+          image: j0nno/qkshare-backend:v1
+          ports:
+           - containerPort: 8080
+          resources:
+            requests:
+              cpu: 200m
+              memory: 300Mi
+            limits:
+              memory: 400Mi
+
+
+
+# kind: Deployment
+# metadata:
+#   name: posts-app-deployment
+#   namespace: 04--pod
+#   labels:
+#     app: posts-app
+# spec:
+#   replicas: 3
+#   selector:
+#     matchLabels:
+#       app: posts-app
+#   template:
+#     metadata:
+#       labels:
+#         app: posts-app
+
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: event-bus-srv
+# spec:
+#   selector:
+#    app: event-bus
+#   ports:
+#    - name: event-bus
+#      protocol: TCP
+#      port: 4005
+#      targetPort: 4005
+    

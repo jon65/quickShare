@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service #cluster ip
+metadata:
+  name: qkshare-service
+  namespace: qkshare
+  # labels:
+  #    name: qkshare-pod #label for grouping resources 
+spec:
+  selector:
+    app: qkshare
+  ports:
+    - protocol: TCP
+      port: 80 #incoming tarffic to port 80 
+      targetPort: 8080 #will go to port 8080 of pods with name: qkshare
+
+
