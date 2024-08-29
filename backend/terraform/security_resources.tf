@@ -6,7 +6,9 @@
 # port 80 - HTTP 
 # port 22 - SSH
 
-#
+#this is where frontend sits
+# allow request from internet gateway
+# allow to send data to user from internet
 resource "aws_security_group" "two-tier-ec2-sg" {
   name        = "two-tier-ec2-sg"
   description = "Allow traffic from VPC"
@@ -74,7 +76,9 @@ resource "aws_security_group" "two-tier-alb-sg" {
   }
 }
 
-# Database tier Security gruop
+# backend nodejs 
+# only allow traffic from 
+# allow outbound traffic to anywhere -> user requests from client
 resource "aws_security_group" "two-tier-db-sg" {
   name        = "two-tier-db-sg"
   description = "allow traffic from internet"
@@ -102,5 +106,6 @@ resource "aws_security_group" "two-tier-db-sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  
 }
 
