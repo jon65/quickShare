@@ -109,28 +109,31 @@ resource "aws_lb" "two-tier-lb" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.two-tier-alb-sg.id] #load balancer associated with these security groups
   subnets            = [aws_subnet.two-tier-pub-sub-1.id, aws_subnet.two-tier-pub-sub-2.id]
-
+  # deployed across two subnets which are public subnets in vpc - ensures high availability 
   tags = {
     Environment = "two-tier-lb"
   }
 }
 
 #  https://achinthabandaranaike.medium.com/how-to-deploy-a-two-tier-architecture-in-aws-using-terraform-a4fd0f2e19ae
-resource "aws_lb_target_group" "two-tier-lb-tg" {
-  name     = "two-tier-lb-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.two-tier-vpc.id
-}
+
+# # listen to incoming traffic on port 80
+# resource "aws_lb_target_group" "two-tier-lb-tg" {
+#   name     = "two-tier-lb-tg"
+#   port     = 80
+#   protocol = "HTTP"
+#   vpc_id   = aws_vpc.two-tier-vpc.id
+# }
 
 # Create Load Balancer listener
+# listen to aws lb on port 80 and then forward incoming traffic  to target_group_arn (vpc)
 resource "aws_lb_listener" "two-tier-lb-listner" {
   load_balancer_arn = aws_lb.two-tier-lb.arn
   port              = "80"
   protocol          = "HTTP"
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.two-tier-lb-tg.arn
+    target_group_arn = aws_lb_target_group.two-tier-loadb_target.arn
   }
 }
 
@@ -149,10 +152,14 @@ resource "aws_lb_target_group_attachment" "two-tier-tg-attch-1" {
   target_id        = aws_instance.two-tier-web-server-1.id
   port             = 80
 }
+# Terraform configuration that attaches an EC2 instance to an Elastic Load Balancing (ELB) target group
+=
 resource "aws_lb_target_group_attachment" "two-tier-tg-attch-2" {
   target_group_arn = aws_lb_target_group.two-tier-loadb_target.arn
   target_id        = aws_instance.two-tier-web-server-2.id
   port             = 80
+    # depends_on = [aws_instance.web_tier1]
+
 }
 
 # Subnet group database
