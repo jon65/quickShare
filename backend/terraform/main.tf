@@ -74,6 +74,10 @@ resource "aws_internet_gateway" "two-tier-igw" {
 }
 
 # Route Table
+# it creates a route table associated with a VPC 
+# route -> 
+# route that directs all traffic from network ip -> internet gateway
+# This route effectively says: "Any traffic leaving this subnet that is destined for any IPv4 address should be routed through the Internet Gateway."
 resource "aws_route_table" "two-tier-rt" {
   tags = {
     Name = "two-tier-rt"
@@ -84,6 +88,8 @@ resource "aws_route_table" "two-tier-rt" {
     gateway_id = aws_internet_gateway.two-tier-igw.id
   }
 }
+# To actually allow traffic from the internet to reach instances in the VPC, you need to configure the Security Groups and Network Access Control Lists (NACLs) for the instances and subnet, respectively.
+# Security Groups should have inbound rules that permit traffic from the internet, such as allowing HTTP (port 80) or SSH (port 22) traffic.
 
 # Route Table Association
 resource "aws_route_table_association" "two-tier-rt-as-1" {
@@ -99,9 +105,9 @@ resource "aws_route_table_association" "two-tier-rt-as-2" {
 # Create Load balancer
 resource "aws_lb" "two-tier-lb" {
   name               = "two-tier-lb"
-  internal           = false
+  internal           = false #sets lb to be publicly accessible
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.two-tier-alb-sg.id]
+  security_groups    = [aws_security_group.two-tier-alb-sg.id] #load balancer associated with these security groups
   subnets            = [aws_subnet.two-tier-pub-sub-1.id, aws_subnet.two-tier-pub-sub-2.id]
 
   tags = {
@@ -109,7 +115,7 @@ resource "aws_lb" "two-tier-lb" {
   }
 }
 
-
+#  https://achinthabandaranaike.medium.com/how-to-deploy-a-two-tier-architecture-in-aws-using-terraform-a4fd0f2e19ae
 resource "aws_lb_target_group" "two-tier-lb-tg" {
   name     = "two-tier-lb-tg"
   port     = 80
@@ -154,30 +160,3 @@ resource "aws_db_subnet_group" "two-tier-db-sub" {
   name       = "two-tier-db-sub"
   subnet_ids = [aws_subnet.two-tier-pvt-sub-1.id, aws_subnet.two-tier-pvt-sub-2.id]
 }
-
-
-# #for amazon linux
-# resource "aws_instance" "qkshare-backend" {
-#     ami = ""
-#     instance_type = "t2.micro"
-
-#     user_data = <<EOF
-#     #!/bin/bash
-#     sudo yum update -y
-#     sudo amazon-linux-extras install docker
-#     #sudo service docker start
-#     sudo usermod -a -G docker appadmin
-#     docker info
-#     sudo chmod 666 /var/run/docker.sock
-
-#     sudo apt-get install nginx
-#     sudo yum install -y git
-#     EOF
-
-#     tags = {
-#         Name = "backend-quickshare-terraform"
-#     }
-# }
-
-
-
