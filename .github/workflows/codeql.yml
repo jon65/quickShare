@@ -19,14 +19,19 @@ on:
   schedule:
     - cron: '36 17 * * 2'
     
-defaults:
-  run:
-    working-directory: dart_project
 jobs:
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
-  
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      
+    defaults:
+      run:
+        working-directory: ./backend
+
     strategy:
         fail-fast: false
         matrix:
@@ -38,17 +43,29 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 2
+        uses: actions/checkout@v3
   
       - name: initialise codeQL
-        uses: github/codeql-action/init@v1
+        uses: github/codeql-action/init@v2
         with:
           languages: ${{ matrix.language }}
   
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v1
+        uses: github/codeql-action/analyze@v2
+
+      
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{matrix.language}}"
+          # default will be output: /home/runner/work/sample-codeql-ci/results/
+          output: ../analyze-results
+  
+      # upload the results for the CodeQL GitHub app to annotate the code
+      - uses: actions/upload-artifact@v3
+        with:
+          name: codeql-output.sarif
+          path: /home/runner/work/sample-codeql-ci/analyze-results/
 
 
  
