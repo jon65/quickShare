@@ -1,7 +1,8 @@
 name: OWASP ZAP Integration with GitHub Actions
 
 on: [push]
-
+env:
+  GITHUB_TOKEN: ${{ secrets.GH_PAT }}
 jobs:
   zap_scan:
     runs-on: ubuntu-latest
