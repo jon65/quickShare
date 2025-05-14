@@ -1,0 +1,13 @@
+name: OWASP ZAP Integration with GitHub Actions
+
+on: [push]
+
+jobs:
+  zap_scan:
+    runs-on: ubuntu-latest
+    name: Scan the web application
+    steps:
+    - name: ZAP Scan
+      uses: zaproxy/action-full-scan@v0.10.0
+      with:
+        target: 'http://qkshare.jonnoyip.com'

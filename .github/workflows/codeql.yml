@@ -1,0 +1,71 @@
+# For most projects, this workflow file will not need changing; you simply need
+# to commit it to your repository.
+#
+# You may wish to alter this file to override the set of languages analyzed,
+# or to provide custom queries or build logic.
+#
+# ******** NOTE ********
+# We have attempted to detect the languages in your repository. Please check
+# the `language` matrix defined below to confirm you have the correct set of
+# supported CodeQL languages.
+#
+name: "CodeQL Advanced"
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  schedule:
+    - cron: '36 17 * * 2'
+    
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+      
+    defaults:
+      run:
+        working-directory: ./backend
+
+    strategy:
+        fail-fast: false
+        matrix:
+          # Override automatic language detection by changing the below list
+          # Supported options are ['csharp', 'cpp', 'go', 'java', 'javascript', 'python']
+          language: ['javascript']
+          # Learn more...
+          # https://docs.github.com/en/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#overriding-automatic-language-detection
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+  
+      - name: initialise codeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+  
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+      
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{matrix.language}}"
+          # default will be output: /home/runner/work/sample-codeql-ci/results/
+          output: ../analyze-results
+  
+      # upload the results for the CodeQL GitHub app to annotate the code
+      - uses: actions/upload-artifact@v3
+        with:
+          name: codeql-output.sarif
+          path: /home/runner/work/sample-codeql-ci/analyze-results/
+
+
+ 
