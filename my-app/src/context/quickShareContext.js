@@ -2,7 +2,7 @@ import { createContext, useCallback, useReducer } from 'react';
 import axios from 'axios';
 import QuickShareReducer from './quickShareReducer';
 
-const URL = 'http://54.169.27.251:8080';
+const URL = 'http://localhost:8080';
 const QuickShareContext = createContext();
 
 const QuickShareProvider = ({ children }) => {
@@ -21,20 +21,37 @@ const QuickShareProvider = ({ children }) => {
         setIsLoading();
     try {
         const res = await axios.get(`${URL}/file`, {
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            responseType: 'blob',  // 👈 this is crucial for file downloads
             params: {
                 'key': key,
                 'code': code,
             }
         });
         
-        setTimeout(() => { 
-            dispatch({ type: 'CANCEL_BOX', payload: false }); 
-        }, 3000);
 
         if (res) { 
+    // Try to extract filename from the response headers
+            const disposition = res.headers['content-disposition'];
+            let filename;
+
+            if (disposition && disposition.includes('filename=')) {
+                filename = disposition
+                    .split('filename=')[1]
+                    .replace(/['"]/g, '')
+                    .trim();
+            }
+
+            const blob = new Blob([res.data], { type: res.headers['content-type'] });
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.setAttribute('download', filename); // Will retain original name
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+
             dispatch({
                 type: 'DOWNLOAD',
                 payload: res.data,

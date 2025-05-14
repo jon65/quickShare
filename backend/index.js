@@ -93,8 +93,8 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
 // Retrieve file by one-time code
 app.get('/file', async (req, res) => {
- const { key, code } = req.params;
-
+ const { key, code } = req.query;
+  console.log(req.params);
   if (!key || !code) {
     return res.status(400).send({
       error: 'Missing key or code',
